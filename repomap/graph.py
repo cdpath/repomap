@@ -75,8 +75,9 @@ def get_reachable_files(repomap, fnames, entry, depth=None, min_refs=1, verbose=
     if len(entry_files) > 1:
         print(f"Error: Multiple files match '{entry}':", file=sys.stderr)
         for f in sorted(entry_files):
-            print(f"  - {f}", file=sys.stderr)
-        print("Please specify a more specific path.", file=sys.stderr)
+            # Show with ./ prefix if at root level for clarity
+            display_path = f if "/" in f else f"./{f}"
+            print(f"  --entry {display_path}", file=sys.stderr)
         return None
     
     entry_file = entry_files[0]
@@ -193,8 +194,8 @@ def generate_call_graph(
         if len(entry_files) > 1:
             print(f"Error: Multiple files match '{entry}':", file=sys.stderr)
             for f in sorted(entry_files):
-                print(f"  - {f}", file=sys.stderr)
-            print("Please specify a more specific path.", file=sys.stderr)
+                display_path = f if "/" in f else f"./{f}"
+                print(f"  --entry {display_path}", file=sys.stderr)
             return
         
         entry_file = entry_files[0]

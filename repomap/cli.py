@@ -148,6 +148,9 @@ Examples:
         filtered_fnames = get_reachable_files(
             rm, all_fnames, args.entry, args.depth, args.min_refs, args.verbose
         )
+        if filtered_fnames is None:
+            # Error already printed by get_reachable_files
+            sys.exit(1)
         if filtered_fnames:
             all_fnames = filtered_fnames
             if args.verbose:
