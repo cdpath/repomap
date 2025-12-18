@@ -71,7 +71,7 @@ Simple JSON:
 {"cli.py": ["core.py", "graph.py"], "core.py": ["ranking.py"]}
 ```
 
-[FASTEN JSON](https://github.com/fasten-project/fasten/wiki/Revision-Call-Graph-format#python):
+[FASTEN JSON](https://github.com/fasten-project/fasten/wiki/Revision-Call-Graph-format#version-2-1):
 ```json
 {"product": "myproject", "graph": {"internalCalls": [["cli.py", "core.py"]]}, ...}
 ```
