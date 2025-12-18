@@ -6,6 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import networkx as nx
+from tqdm import tqdm
 
 from .tags import get_tags_raw
 
@@ -30,7 +31,8 @@ def get_reachable_files(repomap, fnames, entry, depth=None, min_refs=1, verbose=
     references = defaultdict(list)
     symbol_refs_count = defaultdict(int)
     
-    for fname in fnames:
+    file_iter = tqdm(fnames, desc="Scanning files", leave=False) if len(fnames) > 50 else fnames
+    for fname in file_iter:
         rel_fname = repomap.get_rel_fname(fname)
         code = repomap.read_text(fname)
         if not code:
@@ -57,17 +59,27 @@ def get_reachable_files(repomap, fnames, entry, depth=None, min_refs=1, verbose=
                 if ref_file != def_file:
                     G.add_edge(ref_file, def_file)
     
-    # Find entry point
-    entry_file = None
+    # Find entry point - use exact filename match
+    entry_files = []
+    entry_basename = Path(entry).name  # Get just the filename
     for node in G.nodes():
-        if entry in node or node.endswith(entry):
-            entry_file = node
-            break
+        node_basename = Path(node).name
+        # Exact match on filename, or exact match on full path
+        if node_basename == entry_basename or node == entry or node.endswith("/" + entry):
+            entry_files.append(node)
     
-    if not entry_file:
-        if verbose:
-            print(f"Warning: Entry point '{entry}' not found", file=sys.stderr)
+    if not entry_files:
+        print(f"Error: Entry point '{entry}' not found", file=sys.stderr)
         return None
+    
+    if len(entry_files) > 1:
+        print(f"Error: Multiple files match '{entry}':", file=sys.stderr)
+        for f in sorted(entry_files):
+            print(f"  - {f}", file=sys.stderr)
+        print("Please specify a more specific path.", file=sys.stderr)
+        return None
+    
+    entry_file = entry_files[0]
     
     # BFS from entry point
     reachable = {entry_file}
@@ -123,7 +135,8 @@ def generate_call_graph(
     symbol_refs_count = defaultdict(int)  # ident -> total reference count
     file_to_symbols = defaultdict(set)  # file -> set of symbols defined
     
-    for fname in fnames:
+    file_iter = tqdm(fnames, desc="Scanning files", leave=False) if len(fnames) > 50 else fnames
+    for fname in file_iter:
         rel_fname = repomap.get_rel_fname(fname)
         code = repomap.read_text(fname)
         if not code:
@@ -165,37 +178,47 @@ def generate_call_graph(
     
     # If entry point is specified, extract subgraph from that file
     if entry:
-        entry_file = None
+        entry_files = []
+        entry_basename = Path(entry).name  # Get just the filename
         for node in G.nodes():
-            if entry in node or node.endswith(entry):
-                entry_file = node
-                break
+            node_basename = Path(node).name
+            # Exact match on filename, or exact match on full path
+            if node_basename == entry_basename or node == entry or node.endswith("/" + entry):
+                entry_files.append(node)
         
-        if entry_file:
-            # BFS from entry point with optional depth limit
-            reachable = {entry_file}
-            frontier = {entry_file}
-            current_depth = 0
+        if not entry_files:
+            print(f"Error: Entry point '{entry}' not found in graph", file=sys.stderr)
+            return
+        
+        if len(entry_files) > 1:
+            print(f"Error: Multiple files match '{entry}':", file=sys.stderr)
+            for f in sorted(entry_files):
+                print(f"  - {f}", file=sys.stderr)
+            print("Please specify a more specific path.", file=sys.stderr)
+            return
+        
+        entry_file = entry_files[0]
+        
+        # BFS from entry point with optional depth limit
+        reachable = {entry_file}
+        frontier = {entry_file}
+        current_depth = 0
+        
+        while frontier and (depth is None or current_depth < depth):
+            next_frontier = set()
+            for node in frontier:
+                # Add successors (files this file depends on)
+                next_frontier.update(G.successors(node))
             
-            while frontier and (depth is None or current_depth < depth):
-                next_frontier = set()
-                for node in frontier:
-                    # Add successors (files this file depends on)
-                    next_frontier.update(G.successors(node))
-                    # Optionally also add predecessors (files that depend on this)
-                    # next_frontier.update(G.predecessors(node))
-                
-                next_frontier -= reachable
-                reachable.update(next_frontier)
-                frontier = next_frontier
-                current_depth += 1
-            
-            G = G.subgraph(reachable).copy()
-            if verbose:
-                print(f"Entry point '{entry}' -> {len(reachable)} files (depth {current_depth})", 
-                      file=sys.stderr)
-        else:
-            print(f"Warning: Entry point '{entry}' not found in graph", file=sys.stderr)
+            next_frontier -= reachable
+            reachable.update(next_frontier)
+            frontier = next_frontier
+            current_depth += 1
+        
+        G = G.subgraph(reachable).copy()
+        if verbose:
+            print(f"Entry point '{entry}' -> {len(reachable)} files (depth {current_depth})", 
+                  file=sys.stderr)
     
     # If focus is specified, extract subgraph around the focus node
     if focus:

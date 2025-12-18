@@ -153,6 +153,17 @@ Examples:
             if args.verbose:
                 print(f"Entry point filter: {len(all_fnames)} files reachable", file=sys.stderr)
     
+    # Filter files by focus pattern (for repo map, already handled in graph)
+    if args.focus and not args.graph:
+        focus_pattern = args.focus.lower()
+        filtered = [f for f in all_fnames if focus_pattern in f.lower()]
+        if filtered:
+            all_fnames = filtered
+            if args.verbose:
+                print(f"Focus filter: {len(all_fnames)} files match '{args.focus}'", file=sys.stderr)
+        else:
+            print(f"Warning: No files matching focus pattern '{args.focus}'", file=sys.stderr)
+    
     # Generate call graph if requested
     if args.graph:
         from .graph import generate_call_graph

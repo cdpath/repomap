@@ -30,6 +30,7 @@ DEFAULT_EXCLUDES = {
     'target',  # Rust
     'vendor',  # Go
     '.idea', '.vscode',
+    'tests', 'test', 'testing',  # Test directories
 }
 
 def is_important(file_path):
