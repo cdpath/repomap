@@ -1,6 +1,6 @@
 [project]
 name = "pyrepomap"
-version = "0.1.3"
+version = "0.1.4"
 description = "Tree-sitter based repository map generator - extract and visualize code structure"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -38,6 +38,7 @@ Repository = "https://github.com/cdpath/repomap"
 
 [project.scripts]
 repomap = "repomap.cli:main"
+pyrepomap = "repomap.cli:main"
 
 [build-system]
 requires = ["hatchling"]
