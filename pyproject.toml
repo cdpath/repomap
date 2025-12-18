@@ -1,6 +1,6 @@
 [project]
 name = "repomap"
-version = "0.1.1"
+version = "0.1.2"
 description = "Tree-sitter based repository map generator - extract and visualize code structure"
 readme = "README.md"
 license = {text = "Apache-2.0"}
