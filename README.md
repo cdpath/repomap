@@ -2,20 +2,16 @@
 
 Tree-sitter based repository map generator - extract and visualize code structure using PageRank.
 
-## Installation
+## Quick Start
 
-### From source (using uv)
 ```bash
-git clone https://github.com/cdpath/repomap
-cd repomap
-uv tool install .
+uvx pyrepomap ./src
 ```
 
-### From source (using pip)
+## Installation
+
 ```bash
-git clone https://github.com/cdpath/repomap
-cd repomap
-pip install .
+pip install pyrepomap
 ```
 
 ## Usage
