@@ -59,14 +59,28 @@ def get_reachable_files(repomap, fnames, entry, depth=None, min_refs=1, verbose=
                 if ref_file != def_file:
                     G.add_edge(ref_file, def_file)
     
-    # Find entry point - use exact filename match
+    # Find entry point - prioritize exact path matches
     entry_files = []
+    entry_normalized = os.path.normpath(entry)  # Normalize ./main.py -> main.py
     entry_basename = Path(entry).name  # Get just the filename
+    
     for node in G.nodes():
-        node_basename = Path(node).name
-        # Exact match on filename, or exact match on full path
-        if node_basename == entry_basename or node == entry or node.endswith("/" + entry):
-            entry_files.append(node)
+        node_normalized = os.path.normpath(node)
+        # Check for exact path match first (handles ./main.py matching main.py)
+        if node_normalized == entry_normalized:
+            entry_files = [node]  # Exact match, use only this
+            break
+        # Check if entry is a suffix of node path (e.g., "src/main.py" matches "project/src/main.py")
+        if node_normalized.endswith("/" + entry_normalized) or node_normalized == entry_normalized:
+            entry_files = [node]
+            break
+    
+    # Fall back to basename matching only if no exact match found
+    if not entry_files:
+        for node in G.nodes():
+            node_basename = Path(node).name
+            if node_basename == entry_basename:
+                entry_files.append(node)
     
     if not entry_files:
         print(f"Error: Entry point '{entry}' not found", file=sys.stderr)
@@ -180,12 +194,26 @@ def generate_call_graph(
     # If entry point is specified, extract subgraph from that file
     if entry:
         entry_files = []
+        entry_normalized = os.path.normpath(entry)  # Normalize ./main.py -> main.py
         entry_basename = Path(entry).name  # Get just the filename
+        
         for node in G.nodes():
-            node_basename = Path(node).name
-            # Exact match on filename, or exact match on full path
-            if node_basename == entry_basename or node == entry or node.endswith("/" + entry):
-                entry_files.append(node)
+            node_normalized = os.path.normpath(node)
+            # Check for exact path match first (handles ./main.py matching main.py)
+            if node_normalized == entry_normalized:
+                entry_files = [node]  # Exact match, use only this
+                break
+            # Check if entry is a suffix of node path
+            if node_normalized.endswith("/" + entry_normalized) or node_normalized == entry_normalized:
+                entry_files = [node]
+                break
+        
+        # Fall back to basename matching only if no exact match found
+        if not entry_files:
+            for node in G.nodes():
+                node_basename = Path(node).name
+                if node_basename == entry_basename:
+                    entry_files.append(node)
         
         if not entry_files:
             print(f"Error: Entry point '{entry}' not found in graph", file=sys.stderr)
