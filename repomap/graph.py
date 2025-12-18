@@ -243,15 +243,69 @@ def generate_call_graph(
     # Determine output format
     output_path = Path(output_file)
     ext = output_path.suffix.lower()
+    base_name = output_path.stem.lower()
     
     if ext == ".json":
-        # FASTEN format: adjacency list as JSON
         import json
-        adj_list = {}
-        for node in G.nodes():
-            adj_list[node] = sorted(set(G.successors(node)))
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(adj_list, f, indent=2)
+        import time
+        
+        # Check if FASTEN format requested (filename ends with .fasten.json)
+        if base_name.endswith(".fasten"):
+            # FASTEN format version 2 - structured call graph
+            # Build namespace mapping with unique IDs
+            namespace_id = 0
+            namespace_map = {}  # node -> id
+            internal_modules = {}
+            
+            for node in sorted(G.nodes()):
+                module_uri = f"/{node.replace('.py', '').replace('/', '.')}/"
+                namespace_map[node] = str(namespace_id)
+                
+                internal_modules[module_uri] = {
+                    "sourceFile": node,
+                    "namespaces": {
+                        str(namespace_id): {
+                            "namespace": module_uri,
+                            "metadata": {}
+                        }
+                    }
+                }
+                namespace_id += 1
+            
+            # Build calls using string IDs per version 2 spec
+            internal_calls = []
+            for u, v in G.edges():
+                src_id = namespace_map.get(u, u)
+                dst_id = namespace_map.get(v, v)
+                internal_calls.append([src_id, dst_id, {}])
+            
+            fasten_output = {
+                "product": Path(repomap.root).name,
+                "forge": "local",
+                "nodes": namespace_id,
+                "generator": "repomap",
+                "depset": [],
+                "version": "0.1.0",
+                "modules": {
+                    "internal": internal_modules,
+                    "external": {}
+                },
+                "graph": {
+                    "internalCalls": internal_calls,
+                    "externalCalls": [],
+                    "resolvedCalls": []
+                },
+                "timestamp": int(time.time())
+            }
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(fasten_output, f, indent=2)
+        else:
+            # Simple adjacency list format
+            adj_list = {}
+            for node in G.nodes():
+                adj_list[node] = sorted(set(G.successors(node)))
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(adj_list, f, indent=2)
     elif ext == ".dot":
         nx.drawing.nx_pydot.write_dot(G, output_file)
     else:

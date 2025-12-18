@@ -59,13 +59,21 @@ repomap ./src --graph graph.dot --focus core
 
 ![repomap call graph](examples/repomap/repomap.png)
 
-**JSON output (FASTEN format):**
+**JSON formats:**
+
+| Filename | Format |
+|----------|--------|
+| `graph.json` | Simple adjacency list |
+| `graph.fasten.json` | FASTEN format |
+
+Simple JSON:
 ```json
-{
-  "cli.py": ["core.py", "graph.py"],
-  "core.py": ["ranking.py", "cache.py"],
-  "ranking.py": ["tags.py"]
-}
+{"cli.py": ["core.py", "graph.py"], "core.py": ["ranking.py"]}
+```
+
+FASTEN JSON:
+```json
+{"product": "myproject", "graph": {"internalCalls": [["cli.py", "core.py"]]}, ...}
 ```
 
 ## Options
